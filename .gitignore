@@ -1,0 +1,133 @@
+# Dependencias
+/vendor/
+/node_modules/
+/node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+composer.lock
+
+# Archivos del sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Archivos de IDE y editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+.phpstorm.meta.php
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+
+# Archivos de Laravel
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+*.log
+storage/*.key
+storage/logs/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+bootstrap/cache/*.php
+
+# Archivos de testing y cobertura
+.phpunit.cache
+/coverage/
+/tests/_output/
+.phpunit.result.cache
+clover.xml
+coverage.xml
+*.coverage
+*.cache
+
+# Archivos de build y compilación
+/build/
+/dist/
+/public/hot
+/public/storage
+/public/build
+/public/mix-manifest.json
+/public/js/
+/public/css/
+/public/fonts/
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.swp
+*.swo
+*~
+
+# Archivos de documentación generados
+/docs/_build/
+/docs/.doctrees/
+/docs/.buildinfo
+
+# Archivos de configuración local
+.php_cs.cache
+.php_cs.php
+.phpcs.xml
+phpmd.xml
+.phpstan.neon
+.phpstan-baseline.neon
+
+# Archivos de desarrollo
+.phpunit.cache
+.phpunit.result.cache
+.phpstorm.meta.php
+_ide_helper.php
+_ide_helper_models.php
+_ide_helper_relations.php
+
+# Archivos de certificados y claves
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# Archivos de base de datos
+*.sqlite
+*.sqlite-journal
+*.db
+*.sql
+
+# Archivos de cache
+.cache/
+*.cache
+
+# Archivos de sesión
+*.session
+
+# Archivos de uploads temporales
+/uploads/temp/
+/temp/
+/tmp/
+
