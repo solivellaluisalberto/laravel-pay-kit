@@ -1,5 +1,5 @@
 {
-    "name": "vendor/laravel-pay-kit",
+    "name": "solivellaluisaberto/laravel-pay-kit",
     "description": "Paquete de Laravel para integración de pagos",
     "keywords": ["laravel", "payments", "payment", "pay-kit"],
     "license": "MIT",
@@ -18,21 +18,21 @@
     },
     "autoload": {
         "psr-4": {
-            "Vendor\\PayKit\\": "src/"
+            "Solivellaluisaberto\\PayKit\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Vendor\\PayKit\\Tests\\": "tests/"
+            "Solivellaluisaberto\\PayKit\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Vendor\\PayKit\\PayKitServiceProvider"
+                "Solivellaluisaberto\\PayKit\\PayKitServiceProvider"
             ],
             "aliases": {
-                "PayKit": "Vendor\\PayKit\\Facades\\PayKit"
+                "PayKit": "Solivellaluisaberto\\PayKit\\Facades\\PayKit"
             }
         }
     },

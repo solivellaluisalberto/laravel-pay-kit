@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendor\PayKit;
+namespace Solivellaluisaberto\PayKit;
 
 use Illuminate\Support\ServiceProvider;
 

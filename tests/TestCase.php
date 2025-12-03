@@ -1,9 +1,9 @@
 <?php
 
-namespace Vendor\PayKit\Tests;
+namespace Solivellaluisaberto\PayKit\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use Vendor\PayKit\PayKitServiceProvider;
+use Solivellaluisaberto\PayKit\PayKitServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
@@ -39,7 +39,7 @@ abstract class TestCase extends Orchestra
     protected function getPackageAliases($app)
     {
         return [
-            'PayKit' => \Vendor\PayKit\Facades\PayKit::class,
+            'PayKit' => \Solivellaluisaberto\PayKit\Facades\PayKit::class,
         ];
     }
 

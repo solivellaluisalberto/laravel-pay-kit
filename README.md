@@ -7,7 +7,7 @@ Paquete de Laravel para integración de pagos.
 Puedes instalar el paquete a través de Composer:
 
 ```bash
-composer require vendor/laravel-pay-kit
+composer require solivellaluisaberto/laravel-pay-kit
 ```
 
 ## Configuración
@@ -15,7 +15,7 @@ composer require vendor/laravel-pay-kit
 Publica el archivo de configuración:
 
 ```bash
-php artisan vendor:publish --provider="Vendor\PayKit\PayKitServiceProvider" --tag="config"
+php artisan vendor:publish --provider="Solivellaluisaberto\PayKit\PayKitServiceProvider" --tag="config"
 ```
 
 Esto creará el archivo `config/pay-kit.php` donde puedes configurar las opciones del paquete.
@@ -23,7 +23,7 @@ Esto creará el archivo `config/pay-kit.php` donde puedes configurar las opcione
 ## Uso
 
 ```php
-use Vendor\PayKit\Facades\PayKit;
+use Solivellaluisaberto\PayKit\Facades\PayKit;
 
 // Ejemplo de uso
 $payment = PayKit::processPayment($amount, $data);

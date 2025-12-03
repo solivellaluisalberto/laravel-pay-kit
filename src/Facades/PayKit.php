@@ -1,6 +1,6 @@
 <?php
 
-namespace Vendor\PayKit\Facades;
+namespace Solivellaluisaberto\PayKit\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static mixed processPayment(float $amount, array $data = [])
  * @method static mixed verifyPayment(string $paymentId)
  *
- * @see \Vendor\PayKit\PayKit
+ * @see \Solivellaluisaberto\PayKit\PayKit
  */
 class PayKit extends Facade
 {
