@@ -1,56 +1,10 @@
 <?php
 
+use Solivellaluisaberto\PayKit\Services\Redsys\RedsysBizumPaymentService;
+use Solivellaluisaberto\PayKit\Services\Redsys\RedsysCardPaymentService;
+use Solivellaluisaberto\PayKit\Services\Redsys\RedsysEnvironment;
+
 return [
-    /*
-    |--------------------------------------------------------------------------
-    | API Key
-    |--------------------------------------------------------------------------
-    |
-    | Clave API para autenticación con el servicio de pagos
-    |
-    */
-    'api_key' => env('PAY_KIT_API_KEY', ''),
-
-    /*
-    |--------------------------------------------------------------------------
-    | API Secret
-    |--------------------------------------------------------------------------
-    |
-    | Secreto API para autenticación con el servicio de pagos
-    |
-    */
-    'api_secret' => env('PAY_KIT_API_SECRET', ''),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Environment
-    |--------------------------------------------------------------------------
-    |
-    | Entorno de trabajo: 'sandbox' o 'production'
-    |
-    */
-    'environment' => env('PAY_KIT_ENVIRONMENT', 'sandbox'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Base URL
-    |--------------------------------------------------------------------------
-    |
-    | URL base del API de pagos
-    |
-    */
-    'base_url' => env('PAY_KIT_BASE_URL', 'https://api.pay-kit.com'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Timeout
-    |--------------------------------------------------------------------------
-    |
-    | Tiempo de espera en segundos para las peticiones HTTP
-    |
-    */
-    'timeout' => env('PAY_KIT_TIMEOUT', 30),
-
     /*
     |--------------------------------------------------------------------------
     | Currency
@@ -59,6 +13,19 @@ return [
     | Moneda por defecto para los pagos
     |
     */
-    'currency' => env('PAY_KIT_CURRENCY', 'USD'),
+    'currency' => env('PAY_KIT_CURRENCY', 'EUR'),
+
+
+    'logging' => [
+        'enabled' => env('PAY_KIT_LOGGING_ENABLED', true),
+        'channel' => env('PAY_KIT_LOGGING_CHANNEL', 'payments'),
+    ],
+
+    'redsys' => [
+        'merchant_code' => env('REDSYS_MERCHANT_CODE'),
+        'secret_key' => env('REDSYS_SECRET_KEY'),
+        'terminal' => env('REDSYS_TERMINAL'),
+        'environment' => env('REDSYS_ENVIRONMENT', 'test')
+    ],
 ];
 
