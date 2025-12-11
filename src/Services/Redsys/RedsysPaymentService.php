@@ -14,6 +14,7 @@ use Solivellaluisaberto\PayKit\Enums\PaymentType;
 use Solivellaluisaberto\PayKit\Enums\Currency;
 use Solivellaluisaberto\PayKit\Exceptions\PaymentConfigurationException;
 use Solivellaluisaberto\PayKit\Exceptions\PaymentProviderException;
+use Solivellaluisaberto\PayKit\Exceptions\PaymentValidationException;
 
 /**
  * Tipos de transacción soportados por Redsys
@@ -294,6 +295,8 @@ abstract class RedsysPaymentService implements PaymentGateway
      */
     public function initiate(PaymentRequestData $request): PaymentResponseData
     {
+        $this->validateUrls($request);
+
         $this->logPaymentAttempt(PaymentProvider::REDSYS, $request);
 
         try {
@@ -308,10 +311,15 @@ abstract class RedsysPaymentService implements PaymentGateway
             $tpv->setTerminal($this->terminal);
             $tpv->setVersion('HMAC_SHA256_V1');
 
-            // URLs de retorno (ambas apuntan a la misma URL, Redsys diferencia por el resultado)
-            $returnUrl = $request->returnUrl ?? route('payments.redsys.return');
-            $tpv->setUrlOK($returnUrl);
-            $tpv->setUrlKO($returnUrl);
+            // URLs de retorno (obligatorias para Redsys)
+            // URL de éxito: cuando el pago se completa correctamente
+            $tpv->setUrlOK($request->returnUrl);
+            
+            // URL de cancelación/error: cuando el usuario cancela o el pago falla
+            $tpv->setUrlKO($request->cancelUrl);
+
+            // URL de notificación: cuando Redsys envía la notificación de pago
+            $tpv->setNotification($request->notificationUrl);
 
             // Método de pago específico (tarjeta, Bizum, etc.)
             $tpv->setMethod($this->paymentMethod->value);
@@ -702,6 +710,21 @@ abstract class RedsysPaymentService implements PaymentGateway
                 PaymentProvider::REDSYS,
                 $e->getMessage()
             );
+        }
+    }
+
+    protected function validateUrls(PaymentRequestData $request): void {
+        // Validar que las URLs requeridas por Redsys estén presentes
+        if ($request->returnUrl === null) {
+            throw PaymentValidationException::missingRequiredField('returnUrl');
+        }
+        
+        if ($request->cancelUrl === null) {
+            throw PaymentValidationException::missingRequiredField('cancelUrl');
+        }
+
+        if ($request->notificationUrl === null) {
+            throw PaymentValidationException::missingRequiredField('notificationUrl');
         }
     }
     
