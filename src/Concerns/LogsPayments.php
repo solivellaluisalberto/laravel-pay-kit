@@ -47,7 +47,7 @@ trait LogsPayments
      */
     protected function isLoggingEnabled(): bool
     {
-        return config('pay-kit.logging.enabled', true);
+        return config('pay-kit.logging.enabled', false);
     }
 
     /**

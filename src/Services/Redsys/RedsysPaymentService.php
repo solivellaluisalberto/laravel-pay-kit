@@ -90,7 +90,7 @@ enum RedsysEnvironmentRest: string
  * y proporciona funcionalidad común para todos los métodos de pago de Redsys
  * (tarjeta, Bizum, etc.).
  *
- * Las clases concretas (como `RedsysCardPaymentService` o `RedsysBizumPaymentService`)
+ * Las clases concretas (como `RedsysRedirectPaymentService` o `RedsysBizumPaymentService`)
  * deben extender esta clase y definir el método de pago específico en su constructor.
  *
  * Características principales:
@@ -171,63 +171,33 @@ abstract class RedsysPaymentService implements PaymentGateway
     /**
      * Constructor de RedsysPaymentService
      *
-     * Inicializa una nueva instancia del servicio de pago Redsys con las
-     * credenciales y configuración necesarias. Si no se proporcionan los
-     * parámetros, se obtienen de la configuración de Laravel.
+     * Carga credenciales y configuración desde `config('pay-kit.redsys')`,
+     * inicializa el entorno (TPV y REST) y valida que existan `merchant_code`
+     * y `secret_key`. El entorno debe ser 'test' o 'live'; cualquier otro valor
+     * en configuración lanza `PaymentConfigurationException::invalidEnvironment`.
      *
-     * El entorno puede especificarse como string ('test' o 'live') o como
-     * enum `RedsysEnvironment`. Si no se proporciona, se utiliza 'test' por defecto.
-     *
-     * @param string|null $merchantCode Código de comercio de Redsys.
-     *                                  Si es `null`, se obtiene de `config('pay-kit.redsys.merchant_code')`
-     * @param string|null $secretKey Clave secreta de Redsys.
-     *                              Si es `null`, se obtiene de `config('pay-kit.redsys.secret_key')`
-     * @param string|null $terminal Número de terminal de Redsys.
-     *                            Si es `null`, se obtiene de `config('pay-kit.redsys.terminal')` o '1' por defecto
-     * @param RedsysEnvironment|string|null $environment Entorno de operación.
-     *                                                  Puede ser:
-     *                                                  - Un enum `RedsysEnvironment` (recomendado)
-     *                                                  - Un string 'test' o 'live'
-     *                                                  - `null` para usar `config('pay-kit.redsys.environment')` o 'test' por defecto
-     *
-     * @throws PaymentConfigurationException Si:
-     *                                       - El `$merchantCode` no está configurado (ni como parámetro ni en config)
-     *                                       - El `$secretKey` no está configurado (ni como parámetro ni en config)
-     *                                       - El `$environment` proporcionado como string no es válido ('test' o 'live')
+     * @throws PaymentConfigurationException Si falta `merchant_code`, falta `secret_key`
+     *                                       o el entorno configurado no es válido.
      *
      * @example
      * ```php
-     * // Usando configuración de Laravel
-     * $service = new RedsysCardPaymentService();
-     *
-     * // Especificando credenciales directamente
-     * $service = new RedsysCardPaymentService(
-     *     merchantCode: '999999999',
-     *     secretKey: 'sq7HjrUOBfKmC576ILgskD5srU870gJ7',
-     *     terminal: '1',
-     *     environment: RedsysEnvironment::TEST
-     * );
-     *
-     * // Con entorno como string
-     * $service = new RedsysCardPaymentService(
-     *     merchantCode: '999999999',
-     *     secretKey: 'sq7HjrUOBfKmC576ILgskD5srU870gJ7',
-     *     environment: 'live'
-     * );
+     * // Instanciar usando la configuración cargada desde config/pay-kit.php
+     * $service = new RedsysRedirectPaymentService();
      * ```
      */
-    public function __construct(
-        ?string $merchantCode = null,
-        ?string $secretKey = null,
-        ?string $terminal = null,
-        RedsysEnvironment|string|null $environment = null
-    ) {
-        $this->merchantCode = $merchantCode ?? config('pay-kit.redsys.merchant_code');
-        $this->secretKey = $secretKey ?? config('pay-kit.redsys.secret_key');
-        $this->terminal = $terminal ?? config('pay-kit.redsys.terminal', '1');
+    public function __construct() {
+        static $config = null;
+        
+        if ($config === null) {
+            $config = config('pay-kit.redsys', []);
+        }
+        
+        $this->merchantCode = $config['merchant_code'] ?? null;
+        $this->secretKey = $config['secret_key'] ?? null;
+        $this->terminal = $config['terminal'] ?? '1';
         
         // Manejar environment: puede venir como parámetro, de config, o ser null
-        $envValue = $environment ?? config('pay-kit.redsys.environment', 'test');
+        $envValue = $config['environment'] ?? null;
         
         // Convertir string a enum si es necesario
         if (is_string($envValue)) {

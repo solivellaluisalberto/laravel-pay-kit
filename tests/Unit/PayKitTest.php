@@ -200,21 +200,16 @@ class PayKitTest extends TestCase
     public function it_throws_exception_for_cash_provider_online_payment(): void
     {
         // Para testear la validación de CASH, necesitamos agregarlo temporalmente
-        // a los arrays de providers y factories usando una clase válida
+        // a los providers usando una clase válida
         $reflection = new \ReflectionClass($this->payKit);
         $providersProperty = $reflection->getProperty('providers');
-        $factoriesProperty = $reflection->getProperty('factories');
         
         $originalProviders = $providersProperty->getValue($this->payKit);
-        $originalFactories = $factoriesProperty->getValue($this->payKit);
         
         // Agregar CASH usando una clase de servicio existente de Redsys
         // para que pase la validación de class_exists, pero luego falle en la validación de CASH
         $providersProperty->setValue($this->payKit, array_merge($originalProviders, [
-            PaymentProvider::CASH->value => ['default' => \Solivellaluisaberto\PayKit\Services\Redsys\RedsysCardPaymentService::class],
-        ]));
-        $factoriesProperty->setValue($this->payKit, array_merge($originalFactories, [
-            PaymentProvider::CASH->value => 'createRedsysService',
+            PaymentProvider::CASH->value => ['default' => \Solivellaluisaberto\PayKit\Services\Redsys\RedsysRedirectPaymentService::class],
         ]));
 
         $this->expectException(PaymentProviderException::class);
@@ -225,31 +220,6 @@ class PayKitTest extends TestCase
         } finally {
             // Restaurar valores originales
             $providersProperty->setValue($this->payKit, $originalProviders);
-            $factoriesProperty->setValue($this->payKit, $originalFactories);
-        }
-    }
-
-    /** @test */
-    public function it_throws_exception_when_factory_method_not_found(): void
-    {
-        $reflection = new \ReflectionClass($this->payKit);
-        $factoriesProperty = $reflection->getProperty('factories');
-        
-        $originalFactories = $factoriesProperty->getValue($this->payKit);
-        
-        // Temporalmente usar un método que no existe
-        $factoriesProperty->setValue($this->payKit, [
-            PaymentProvider::REDSYS->value => 'nonExistentFactoryMethod',
-        ]);
-
-        $this->expectException(PaymentConfigurationException::class);
-        $this->expectExceptionMessage("Factory method 'nonExistentFactoryMethod' does not exist or is not callable");
-
-        try {
-            $this->payKit->driver(PaymentProvider::REDSYS, 'card');
-        } finally {
-            // Restaurar valor original
-            $factoriesProperty->setValue($this->payKit, $originalFactories);
         }
     }
 
@@ -383,5 +353,31 @@ class PayKitTest extends TestCase
         // Verificar que es la misma instancia que si pedimos 'card' específicamente
         $cardGateway = $this->payKit->driver(PaymentProvider::REDSYS, 'card');
         $this->assertSame($gateway, $cardGateway);
+    }
+
+    /** @test */
+    public function it_can_get_gateway_using_concrete_class(): void
+    {
+        $gateway = $this->payKit->driver(\Solivellaluisaberto\PayKit\Services\Redsys\RedsysRedirectPaymentService::class);
+
+        $this->assertInstanceOf(PaymentGateway::class, $gateway);
+    }
+
+    /** @test */
+    public function it_caches_gateway_instances_when_using_concrete_class(): void
+    {
+        $gateway1 = $this->payKit->driver(\Solivellaluisaberto\PayKit\Services\Redsys\RedsysRedirectPaymentService::class);
+        $gateway2 = $this->payKit->driver(\Solivellaluisaberto\PayKit\Services\Redsys\RedsysRedirectPaymentService::class);
+
+        $this->assertSame($gateway1, $gateway2);
+    }
+
+    /** @test */
+    public function it_throws_exception_when_gateway_class_does_not_exist(): void
+    {
+        $this->expectException(PaymentConfigurationException::class);
+        $this->expectExceptionMessage("Payment provider 'NonExistentGatewayClass' is not supported.");
+
+        $this->payKit->driver('NonExistentGatewayClass');
     }
 }

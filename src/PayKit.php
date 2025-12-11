@@ -7,7 +7,7 @@ use Solivellaluisaberto\PayKit\Enums\PaymentProvider;
 use Solivellaluisaberto\PayKit\Exceptions\PaymentConfigurationException;
 use Solivellaluisaberto\PayKit\Exceptions\PaymentProviderException;
 use Solivellaluisaberto\PayKit\Services\Redsys\RedsysBizumPaymentService;
-use Solivellaluisaberto\PayKit\Services\Redsys\RedsysCardPaymentService;
+use Solivellaluisaberto\PayKit\Services\Redsys\RedsysRedirectPaymentService;
 
 /**
  * Gestor principal de gateways de pago
@@ -24,7 +24,7 @@ class PayKit
     /**
      * Cache de instancias de gateways ya creados
      *
-     * La clave es una combinación de proveedor y método (ej: "redsys.card")
+     * La clave es una combinación de proveedor y método (ej: "redsys.redirect")
      * para evitar crear múltiples instancias del mismo gateway.
      *
      * @var array<string, PaymentGateway>
@@ -55,27 +55,11 @@ class PayKit
      */
     private array $providers = [
         PaymentProvider::REDSYS->value => [
-            'card' => RedsysCardPaymentService::class,
+            'redirect' => RedsysRedirectPaymentService::class,
             'bizum' => RedsysBizumPaymentService::class,
         ],
     ];
 
-    /**
-     * Mapeo de proveedores a sus métodos factory correspondientes
-     *
-     * Este array permite asociar cada proveedor con su método factory
-     * específico. Facilita la escalabilidad al permitir agregar nuevos
-     * proveedores simplemente añadiendo una entrada aquí y creando
-     * el método factory correspondiente.
-     *
-     * La clave es el valor del enum PaymentProvider (string) y el valor
-     * es el nombre del método factory privado que debe ser llamado.
-     *
-     * @var array<string, string>
-     */
-    private array $factories = [
-        PaymentProvider::REDSYS->value => 'createRedsysService',
-    ];
 
     /**
      * Registrar un driver personalizado para un proveedor de pago
@@ -85,7 +69,7 @@ class PayKit
      *
      * El nombre puede ser:
      * - Un proveedor simple: 'mercadopago' (usará el primer método disponible)
-     * - Una combinación proveedor.método: 'redsys.card' (específico)
+     * - Una combinación proveedor.método: 'redsys.redirect' (específico)
      *
      * @param string $name Nombre del driver. Puede ser 'provider' o 'provider.method'
      * @param callable $driver Closure que recibe la instancia de PayKit y retorna
@@ -104,26 +88,27 @@ class PayKit
     }
 
     /**
-     * Obtener una instancia del gateway para un proveedor y método específicos
+     * Obtener una instancia del gateway
      *
      * Este método es el punto de entrada principal para obtener gateways de pago.
+     * Soporta dos formas de uso:
+     * 1. Pasando directamente la clase del gateway (recomendado)
+     * 2. Pasando provider + method (compatibilidad)
+     *
      * Implementa un sistema de cacheo para evitar crear múltiples instancias
      * del mismo gateway, y soporta drivers personalizados con mayor prioridad.
      *
-     * Flujo de resolución:
-     * 1. Normaliza y valida el proveedor
-     * 2. Resuelve el método si no se especifica
-     * 3. Verifica si el gateway ya está en cache
-     * 4. Busca drivers personalizados registrados
-     * 5. Busca en la configuración de proveedores del paquete
-     * 6. Instancia el servicio usando el factory correspondiente
-     * 7. Cachea la instancia para futuras solicitudes
+     * Cada servicio maneja su propia configuración en el constructor, simplificando
+     * la lógica de PayKit a solo instanciar y cachear.
      *
-     * @param PaymentProvider|string $provider Proveedor de pago. Puede ser un enum
-     *                                         PaymentProvider o un string con el nombre
-     * @param string|null $method Método de pago específico (ej: 'card', 'bizum').
+     * @param PaymentProvider|string|class-string<PaymentGateway> $provider Proveedor de pago o clase del gateway.
+     *                                                                      Puede ser:
+     *                                                                      - Una clase concreta (ej: RedsysRedirectPaymentService::class) - RECOMENDADO
+     *                                                                      - Un enum PaymentProvider
+     *                                                                      - Un string con el nombre del proveedor
+     * @param string|null $method Método de pago específico (ej: 'redirect', 'bizum').
+     *                           Solo se usa si $provider no es una clase.
      *                           Si es null, se utilizará el primer método disponible
-     *                           para el proveedor especificado
      *
      * @return PaymentGateway Instancia del gateway solicitado
      *
@@ -136,8 +121,12 @@ class PayKit
      *                                 soporta procesamiento de pagos online (ej: CASH)
      *
      * @example
-     * // Usando enum
-     * $gateway = PayKit::driver(PaymentProvider::REDSYS, 'card');
+     * // Forma recomendada: usando clase concreta (más type-safe e intuitivo)
+     * $gateway = PayKit::driver(RedsysRedirectPaymentService::class);
+     * $gateway = PayKit::driver(RedsysBizumPaymentService::class);
+     *
+     * // Forma tradicional: usando enum (compatibilidad)
+     * $gateway = PayKit::driver(PaymentProvider::REDSYS, 'redirect');
      *
      * // Usando string
      * $gateway = PayKit::driver('redsys', 'bizum');
@@ -147,16 +136,22 @@ class PayKit
      */
     public function driver(PaymentProvider|string $provider, ?string $method = null): PaymentGateway
     {
+        // Si se pasa una clase concreta, instanciarla directamente
+        if (is_string($provider) && class_exists($provider) && is_subclass_of($provider, PaymentGateway::class)) {
+            return $this->createFromClass($provider);
+        }
+
+        // Flujo tradicional: provider + method → mapear a clase y luego instanciar
         $providerEnum = $this->resolveProvider($provider);
         $providerName = $providerEnum->value;
         
-        // Validar proveedores especiales temprano (antes de cualquier procesamiento)
+        // Validar proveedores especiales temprano
         $this->validateProviderSupport($providerEnum);
 
         $method = $this->resolveMethod($providerName, $method);
         $cacheKey = "{$providerName}.{$method}";
 
-        // Verificar cache antes de cualquier procesamiento
+        // Verificar cache
         if (isset($this->gateways[$cacheKey])) {
             return $this->gateways[$cacheKey];
         }
@@ -167,8 +162,8 @@ class PayKit
             return $this->cacheGateway($cacheKey, $gateway);
         }
 
-        // Resolver desde configuración del paquete
-        return $this->createFromPackageConfig($providerEnum, $providerName, $method, $cacheKey);
+        // Mapear provider + method a clase y crear instancia
+        return $this->createFromProviderMethod($providerName, $method, $cacheKey);
     }
 
     /**
@@ -277,13 +272,65 @@ class PayKit
     }
 
     /**
-     * Crear gateway desde la configuración del paquete
+     * Crear gateway directamente desde una clase concreta
      *
-     * Crea una instancia del gateway usando la configuración interna
-     * del paquete, validando todas las dependencias necesarias.
+     * Cada servicio maneja su propia configuración en el constructor,
+     * por lo que solo necesitamos instanciarlo.
      *
-     * @param PaymentProvider $providerEnum Enum del proveedor
-     * @param string $providerName Nombre del proveedor (valor del enum)
+     * @param class-string<PaymentGateway> $gatewayClass Clase del gateway a instanciar
+     *
+     * @return PaymentGateway Instancia del gateway
+     *
+     * @throws PaymentConfigurationException Si la clase no existe o no implementa PaymentGateway
+     */
+    private function createFromClass(string $gatewayClass): PaymentGateway
+    {
+        // Validar que la clase existe y es un PaymentGateway
+        if (!class_exists($gatewayClass)) {
+            throw PaymentConfigurationException::invalidConfiguration(
+                $gatewayClass,
+                "Gateway class '{$gatewayClass}' does not exist"
+            );
+        }
+
+        if (!is_subclass_of($gatewayClass, PaymentGateway::class)) {
+            throw PaymentConfigurationException::invalidConfiguration(
+                $gatewayClass,
+                "Class '{$gatewayClass}' must implement PaymentGateway interface"
+            );
+        }
+
+        // Usar la clase como clave de cache
+        $cacheKey = $gatewayClass;
+
+        // Verificar cache
+        if (isset($this->gateways[$cacheKey])) {
+            return $this->gateways[$cacheKey];
+        }
+
+        // Intentar resolver desde driver personalizado
+        $gateway = $this->resolveCustomDriver($cacheKey);
+        if ($gateway !== null) {
+            return $this->cacheGateway($cacheKey, $gateway);
+        }
+
+        // Instanciar el gateway (cada clase maneja su propia configuración)
+        $gateway = new $gatewayClass();
+
+        if (! $gateway instanceof PaymentGateway) {
+            throw PaymentConfigurationException::invalidConfiguration(
+                $gatewayClass,
+                "Class '{$gatewayClass}' must return an instance of PaymentGateway"
+            );
+        }
+
+        return $this->cacheGateway($cacheKey, $gateway);
+    }
+
+    /**
+     * Crear gateway desde provider + method (mapear a clase y luego instanciar)
+     *
+     * @param string $providerName Nombre del proveedor
      * @param string $method Método de pago
      * @param string $cacheKey Clave de cache
      *
@@ -291,17 +338,17 @@ class PayKit
      *
      * @throws PaymentConfigurationException Si la configuración es inválida
      */
-    private function createFromPackageConfig(
-        PaymentProvider $providerEnum,
+    private function createFromProviderMethod(
         string $providerName,
         string $method,
         string $cacheKey
     ): PaymentGateway {
         // Validar que el proveedor y método existen en la configuración
-        $this->validateProviderMethod($providerName, $method);
-
-        // Validar que el factory existe antes de continuar
-        $this->validateFactoryExists($providerName);
+        if (!isset($this->providers[$providerName][$method])) {
+            throw PaymentConfigurationException::unsupportedProvider(
+                "{$providerName}.{$method}"
+            );
+        }
 
         // Obtener la clase del servicio
         $serviceClass = $this->providers[$providerName][$method];
@@ -313,78 +360,10 @@ class PayKit
             );
         }
 
-        // Crear instancia usando el factory
-        $gateway = $this->createFromFactory($providerName, $serviceClass);
-
-        // Validar que el factory retornó una instancia válida
-        if (! $gateway instanceof PaymentGateway) {
-            $factoryMethod = $this->factories[$providerName];
-            throw PaymentConfigurationException::invalidConfiguration(
-                $cacheKey,
-                "Factory method '{$factoryMethod}' must return an instance of PaymentGateway"
-            );
-        }
-
-        return $this->cacheGateway($cacheKey, $gateway);
+        // Crear instancia (cada clase maneja su propia configuración)
+        return $this->createFromClass($serviceClass);
     }
 
-    /**
-     * Validar que el proveedor y método existen en la configuración
-     *
-     * @param string $providerName Nombre del proveedor
-     * @param string $method Método de pago
-     *
-     * @return void
-     *
-     * @throws PaymentConfigurationException Si el proveedor o método no existen
-     */
-    private function validateProviderMethod(string $providerName, string $method): void
-    {
-        if (!isset($this->providers[$providerName][$method])) {
-            throw PaymentConfigurationException::unsupportedProvider(
-                "{$providerName}.{$method}"
-            );
-        }
-    }
-
-    /**
-     * Validar que existe un factory para el proveedor
-     *
-     * @param string $providerName Nombre del proveedor
-     *
-     * @return void
-     *
-     * @throws PaymentConfigurationException Si no existe factory para el proveedor
-     */
-    private function validateFactoryExists(string $providerName): void
-    {
-        if (!isset($this->factories[$providerName])) {
-            throw PaymentConfigurationException::unsupportedProvider($providerName);
-        }
-
-        $factoryMethod = $this->factories[$providerName];
-
-        if (!method_exists($this, $factoryMethod) || !is_callable([$this, $factoryMethod])) {
-            throw PaymentConfigurationException::invalidConfiguration(
-                $providerName,
-                "Factory method '{$factoryMethod}' does not exist or is not callable"
-            );
-        }
-    }
-
-    /**
-     * Crear gateway usando el factory correspondiente
-     *
-     * @param string $providerName Nombre del proveedor
-     * @param string $serviceClass Clase del servicio a instanciar
-     *
-     * @return PaymentGateway Instancia del gateway creado
-     */
-    private function createFromFactory(string $providerName, string $serviceClass): PaymentGateway
-    {
-        $factoryMethod = $this->factories[$providerName];
-        return $this->{$factoryMethod}($serviceClass);
-    }
 
     /**
      * Cachear una instancia de gateway
@@ -402,51 +381,5 @@ class PayKit
         return $gateway;
     }
 
-    /**
-     * Factory method para crear instancias de servicios de Redsys
-     *
-     * Este método se encarga de instanciar cualquier servicio de Redsys
-     * (RedsysCardPaymentService, RedsysBizumPaymentService, etc.) pasando
-     * la configuración necesaria desde el archivo de configuración.
-     *
-     * La configuración se lee de 'pay-kit.redsys' y se cachea estáticamente
-     * a nivel de método para evitar múltiples llamadas a config() durante
-     * la misma ejecución del script. Esto es seguro porque la configuración
-     * de Laravel es inmutable durante la ejecución de una request.
-     *
-     * Nota: El cacheo estático aquí es complementario al cacheo de instancias
-     * en la propiedad $gateways. Este cachea la lectura de config(), mientras
-     * que $gateways cachea las instancias completas de los servicios.
-     *
-     * @param string $serviceClass Nombre completo de la clase del servicio
-     *                            a instanciar (debe extender RedsysPaymentService)
-     *
-     * @return PaymentGateway Instancia del servicio de Redsys configurado
-     *
-     * @throws PaymentConfigurationException Si la clase no existe o no puede
-     *                                       ser instanciada
-     *
-     * @internal Este método es llamado internamente por driver() cuando
-     *          se solicita un gateway de Redsys. No debe ser llamado
-     *          directamente desde código externo.
-     */
-    private function createRedsysService(string $serviceClass): PaymentGateway
-    {
-        // Cachear la configuración estáticamente para evitar múltiples llamadas a config()
-        // durante la misma ejecución del script. Esto es seguro porque la configuración
-        // de Laravel normalmente no cambia durante la ejecución de una request.
-        static $config = null;
-        
-        if ($config === null) {
-            $config = config('pay-kit.redsys', []);
-        }
-
-        return new $serviceClass(
-            merchantCode: $config['merchant_code'] ?? null,
-            secretKey: $config['secret_key'] ?? null,
-            terminal: $config['terminal'] ?? null,
-            environment: $config['environment'] ?? null
-        );
-    }
     
 }

@@ -1,7 +1,7 @@
 <?php
 
 use Solivellaluisaberto\PayKit\Services\Redsys\RedsysBizumPaymentService;
-use Solivellaluisaberto\PayKit\Services\Redsys\RedsysCardPaymentService;
+use Solivellaluisaberto\PayKit\Services\Redsys\RedsysRedirectPaymentService;
 use Solivellaluisaberto\PayKit\Services\Redsys\RedsysEnvironment;
 
 return [
@@ -17,7 +17,7 @@ return [
 
 
     'logging' => [
-        'enabled' => env('PAY_KIT_LOGGING_ENABLED', true),
+        'enabled' => env('PAY_KIT_LOGGING_ENABLED', false),
         'channel' => env('PAY_KIT_LOGGING_CHANNEL', 'payments'),
     ],
 

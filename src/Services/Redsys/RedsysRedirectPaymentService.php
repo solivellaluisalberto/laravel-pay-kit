@@ -5,41 +5,37 @@ namespace Solivellaluisaberto\PayKit\Services\Redsys;
 use Solivellaluisaberto\PayKit\Exceptions\PaymentConfigurationException;
 
 /**
- * Servicio de pago con Bizum a través de Redsys
+ * Servicio de pago redirigido con tarjeta de crédito/débito a través de Redsys
  *
  * Esta clase proporciona una implementación concreta del servicio de pago Redsys
- * específicamente para pagos con Bizum. Extiende la clase base `RedsysPaymentService`
- * y configura automáticamente el método de pago como Bizum (`RedsysPaymentMethod::BIZUM`).
- *
- * Bizum es un sistema de pagos móviles instantáneos que permite realizar pagos
- * directamente desde la aplicación móvil del banco del usuario, sin necesidad de
- * introducir datos de tarjeta.
+ * específicamente para pagos con tarjeta de crédito o débito. Extiende la clase
+ * base `RedsysPaymentService` y configura automáticamente el método de pago como
+ * tarjeta (`RedsysPaymentMethod::CARD`).
  *
  * Características:
- * - Soporte para pagos con Bizum
+ * - Soporte para tarjetas de crédito y débito
  * - Integración con TPV Virtual de Redsys
  * - Generación automática de formularios HTML
  * - Verificación de callbacks con firma de seguridad
  * - Soporte para reembolsos a través de API REST
- * - Pagos instantáneos y seguros
  *
  * Esta clase se instancia automáticamente por el manager `PayKit` cuando se
- * solicita un driver para Redsys con el método de pago 'bizum'.
+ * solicita un driver para Redsys con el método de pago 'card'.
  *
  * @package Solivellaluisaberto\PayKit\Services\Redsys
  * @author Solivellaluisaberto
  *
  * @see RedsysPaymentService Clase base con la implementación común
- * @see RedsysRedirectPaymentService Servicio para pagos con tarjeta
+ * @see RedsysBizumPaymentService Servicio para pagos con Bizum
  */
-class RedsysBizumPaymentService extends RedsysPaymentService
+class RedsysRedirectPaymentService extends RedsysPaymentService
 {
     /**
-     * Constructor de RedsysBizumPaymentService
+     * Constructor de RedsysRedirectPaymentService
      *
-     * Inicializa el servicio de pago con Bizum de Redsys usando la
+     * Inicializa el servicio de pago con tarjeta de Redsys usando la
      * configuración cargada desde `config('pay-kit.redsys')`. Establece
-     * el método de pago como Bizum y delega el resto de la inicialización
+     * el método de pago como tarjeta y delega el resto de la inicialización
      * a la clase base.
      *
      * @throws PaymentConfigurationException Si faltan credenciales en configuración
@@ -48,10 +44,10 @@ class RedsysBizumPaymentService extends RedsysPaymentService
      * @example
      * ```php
      * // Usando configuración de Laravel
-     * $service = new RedsysBizumPaymentService();
+     * $service = new RedsysRedirectPaymentService();
      *
      * // Especificando credenciales directamente
-     * $service = new RedsysBizumPaymentService(
+     * $service = new RedsysRedirectPaymentService(
      *     merchantCode: '999999999',
      *     secretKey: 'sq7HjrUOBfKmC576ILgskD5srU870gJ7',
      *     terminal: '1',
@@ -59,13 +55,13 @@ class RedsysBizumPaymentService extends RedsysPaymentService
      * );
      *
      * // Con entorno como string
-     * $service = new RedsysBizumPaymentService(
+     * $service = new RedsysRedirectPaymentService(
      *     merchantCode: '999999999',
      *     secretKey: 'sq7HjrUOBfKmC576ILgskD5srU870gJ7',
      *     environment: 'live'
      * );
      *
-     * // Iniciar un pago con Bizum
+     * // Iniciar un pago
      * $request = new PaymentRequestData(
      *     amount: 99.99,
      *     currency: Currency::EUR,
@@ -75,11 +71,10 @@ class RedsysBizumPaymentService extends RedsysPaymentService
      *
      * $response = $service->initiate($request);
      * // $response->formHtml contiene el formulario HTML para renderizar
-     * // El usuario será redirigido a su app de Bizum para completar el pago
      * ```
      */
     public function __construct() {
         parent::__construct();
-        $this->paymentMethod = RedsysPaymentMethod::BIZUM;
+        $this->paymentMethod = RedsysPaymentMethod::CARD;
     }
 }
